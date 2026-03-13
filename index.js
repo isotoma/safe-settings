@@ -543,13 +543,13 @@ module.exports = (robot, { getRouter }, Settings = require('./lib/settings')) =>
     const { payload } = context
     const { repository } = payload
     const { check_run } = payload
-    const { check_suite } = check_run
-    const pull_request = check_suite.pull_requests[0]
-    const source = payload.check_run.name === 'Safe-setting validator'
+    const source = check_run && check_run.name === 'Safe-setting validator'
     if (!source) {
       robot.log.debug(' Not triggered by Safe-settings...')
       return
     }
+    const { check_suite } = check_run
+    const pull_request = check_suite.pull_requests[0]
 
     if (check_run.status === 'completed') {
       robot.log.debug(' Checkrun created as completed, returning')
