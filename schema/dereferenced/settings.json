@@ -53,6 +53,17 @@
                 "code_security": {
                   "type": "object",
                   "description": "Use the `status` property to enable or disable GitHub Code Security for this repository.",
+                  "description": "Use the `status` property to enable or disable GitHub Advanced Security for this repository.\nFor more information, see \"[About GitHub Advanced\nSecurity](/github/getting-started-with-github/learning-about-github/about-github-advanced-security).\"\n\nFor standalone Code Scanning or Secret Protection products, this parameter cannot be used.",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Can be `enabled` or `disabled`."
+                    }
+                  }
+                },
+                "code_security": {
+                  "type": "object",
+                  "description": "Use the `status` property to enable or disable GitHub Code Security for this repository.",
                   "properties": {
                     "status": {
                       "type": "string",
@@ -73,6 +84,16 @@
                 "secret_scanning_push_protection": {
                   "type": "object",
                   "description": "Use the `status` property to enable or disable secret scanning push protection for this repository. For more information, see \"[Protecting pushes with secret scanning](/code-security/secret-scanning/protecting-pushes-with-secret-scanning).\"",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "Can be `enabled` or `disabled`."
+                    }
+                  }
+                },
+                "secret_scanning_ai_detection": {
+                  "type": "object",
+                  "description": "Use the `status` property to enable or disable secret scanning AI detection for this repository. For more information, see \"[Responsible detection of generic secrets with AI](https://docs.github.com/code-security/secret-scanning/using-advanced-secret-scanning-and-push-protection-features/generic-secret-detection/responsible-ai-generic-secrets).\"",
                   "properties": {
                     "status": {
                       "type": "string",
