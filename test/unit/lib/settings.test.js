@@ -436,6 +436,39 @@ repository:
         expect(settings.repoMatchesProperties([{ property_name: 'envs', value: ['dev'] }], [{ envs: 'prod' }])).toBe(false)
       })
     })
+
+    describe('getRepoCustomPropertyValues', () => {
+      beforeEach(() => {
+        mockSubOrg = undefined
+      })
+
+      it('paginates the repo-scoped custom properties endpoint', async () => {
+        const endpoint = jest.fn()
+        stubContext.octokit.rest.repos.customPropertiesForReposGetRepositoryValues = endpoint
+        settings = createSettings({ restrictedRepos: {} })
+        stubContext.octokit.paginate.mockResolvedValue([{ property_name: 'Team', value: 'DevOps' }])
+
+        const values = await settings.getRepoCustomPropertyValues({ owner: 'test', repo: 'test-repo' })
+
+        expect(stubContext.octokit.paginate).toHaveBeenCalledWith(endpoint, {
+          owner: 'test',
+          repo: 'test-repo',
+          per_page: 100
+        })
+        expect(values).toEqual([{ property_name: 'Team', value: 'DevOps' }])
+      })
+
+      it('throws instead of paginating an undefined route when the octokit method is missing', async () => {
+        // A renamed/removed octokit method must not silently degrade: paginate(undefined, ...)
+        // requests the API root and returns junk, making every suborgproperties match fail.
+        delete stubContext.octokit.rest.repos.customPropertiesForReposGetRepositoryValues
+        settings = createSettings({ restrictedRepos: {} })
+
+        await expect(settings.getRepoCustomPropertyValues({ owner: 'test', repo: 'test-repo' }))
+          .rejects.toThrow('customPropertiesForReposGetRepositoryValues is not available')
+        expect(stubContext.octokit.paginate).not.toHaveBeenCalled()
+      })
+    })
   }) // loadConfigs
 
   describe('loadYaml', () => {
