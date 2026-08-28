@@ -7,6 +7,7 @@ describe('Branches', () => {
   let github
   const log = jest.fn()
   log.debug = jest.fn()
+  log.info = jest.fn()
   log.error = jest.fn()
 
   function configure (config) {

@@ -19,7 +19,7 @@ describe('Archive Plugin', () => {
     }
     repo = { owner: 'test-owner', repo: 'test-repo' }
     settings = {}
-    log = { debug: jest.fn(), warn: jest.fn() }
+    log = { debug: jest.fn(), info: jest.fn(), warn: jest.fn() }
   })
 
   describe('getRepo', () => {
@@ -72,7 +72,7 @@ describe('Archive Plugin', () => {
         repo: repo.repo,
         archived: true
       })
-      expect(log.debug).toHaveBeenCalled()
+      expect(log.info).toHaveBeenCalled()
     })
   })
 

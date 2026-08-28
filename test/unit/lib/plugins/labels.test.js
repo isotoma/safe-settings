@@ -28,7 +28,7 @@ describe('Labels', () => {
         }
       }
     }
-    log = { debug: jest.fn(), error: console.error }
+    log = { debug: jest.fn(), info: jest.fn(), error: console.error }
   })
 
   describe('sync', () => {

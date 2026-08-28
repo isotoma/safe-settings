@@ -32,7 +32,7 @@ describe.skip('plugin', () => {
       }
     }
     app.auth = () => Promise.resolve(github)
-    app.log = { debug: jest.fn(), error: console.error }
+    app.log = { debug: jest.fn(), info: jest.fn(), error: console.error }
     event = {
       name: 'push',
       payload: JSON.parse(JSON.stringify(require('../fixtures/events/push.settings.json')))
