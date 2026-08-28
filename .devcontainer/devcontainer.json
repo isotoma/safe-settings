@@ -10,6 +10,14 @@
 		"args": { "VARIANT": "22-bookworm" }
 	},
 
+	// Make the host ~/.npmrc available inside the container so that
+	// postCreateCommand's npm install can reach the private registry.
+	// Read-only bind mount: the credential stays on the host and is
+	// never written into an image layer.
+	"mounts": [
+		"source=${localEnv:HOME}/.npmrc,target=/home/node/.npmrc,type=bind,readonly"
+	],
+
 	"settings": {},
 
 	"extensions": [
