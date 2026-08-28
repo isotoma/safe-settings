@@ -7,8 +7,18 @@
 		// Update 'VARIANT' to pick a Node version: 16, 14, 12.
 		// Append -bullseye or -buster to pin to an OS version.
 		// Use -bullseye variants on local arm64/Apple Silicon.
-		"args": { "VARIANT": "20-bookworm" }
+		"args": { "VARIANT": "20-bookworm" },
+		// Pass the host ~/.npmrc to the build as a BuildKit secret so that
+		// build-time npm installs can reach the private registry. The file is
+		// never written into an image layer. required=false in the Dockerfile
+		// keeps the build working for anyone without an ~/.npmrc.
+		"options": ["--secret", "id=npmrc,src=${localEnv:HOME}/.npmrc"]
 	},
+
+	// Same file at runtime, for postCreateCommand's npm install.
+	"mounts": [
+		"source=${localEnv:HOME}/.npmrc,target=/home/node/.npmrc,type=bind,readonly"
+	],
 
 	"settings": {},
 
