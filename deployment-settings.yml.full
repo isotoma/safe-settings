@@ -1,0 +1,30 @@
+restrictedRepos:
+  include:
+    - admin
+    - britishswimming.org
+    - cheshire-archives
+    - gloshospitals.nhs.uk
+    - frg
+    - frg-infrastructure
+    - hbf
+    - house-builder
+    - ifg-harvest
+    - ifg-harvest-flux
+    - ifg-harvest-infrastructure
+    - imperial
+    - isotoma2023
+    - medusa-application
+    - medusa-infrastructure
+    - orthellius
+    - orthellius-marketing-site
+    - pathfinder-navigator
+    - pebble-snowflake
+    - perspective-cluster
+    - polpeo-go
+    - skyline
+    - sofia-flux
+    - sofia-infrastructure
+    - sofia-marketing-site
+    - test
+    - training2025-lms
+    - trustsrv.io
