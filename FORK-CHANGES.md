@@ -83,6 +83,33 @@ Also in `full-sync.js`: `require('dotenv').config()`, `await probot.auth()`,
 `settings && settings.results` guards, and `console.error('...', error)` so a
 failure produces a stack trace rather than `[object Object]`.
 
+**The printer is dry-run only, and now says so.** `appendToResults()`
+(`lib/settings.js:1057`) returns early when `this.nop` is false, and
+`diffable.js` only pushes `NopCommand`s under the same condition, so
+`settings.results` is *always* empty in apply mode. The original printer
+therefore reported "No changes detected." on a run that had just rewritten a
+ruleset — wrong on precisely the run where confirmation matters most, and only
+survivable because Theme 4's `[Plugin]` info logs happen to show the writes.
+
+The printer is now gated on `nop`. With `nop` false it prints:
+
+```
+Applied. safe-settings does not collect a result set when writing, so what
+changed is in the [Plugin] log lines above.
+```
+
+Verified against a stubbed `syncInstallation` for all three cases: apply mode,
+dry-run with no changes, and dry-run with a change. `standard` and `eslint`
+clean; unit tests still 148 passed.
+
+Worth knowing separately: in apply mode `handleResults()` calls
+`createCheckRun()`, which does `listCommits` against `env.ADMIN_REPO`. If the
+app installation cannot see the admin repo that 404s and logs
+`Admin Repo Not found` plus the full `HttpError`. It is caught, so the sync still
+succeeds — but it looks alarming. Granting the installation read access to the
+admin repo silences it, and does not bring that repo into sync scope, which
+`deployment-settings.yml` governs separately.
+
 ## Theme 4 — See what it is doing during a sync
 
 The "doing stuff" logs were promoted from `debug` to `info`, with a consistent

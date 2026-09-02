@@ -78,7 +78,15 @@ async function performFullSync (appFn, nop) {
     const app = appFn(probot, {})
     const settings = await app.syncInstallation(nop)
 
-    if (settings && settings.results) {
+    // Results are only collected in NOP mode - appendToResults() in
+    // lib/settings.js returns early when this.nop is false, and diffable.js
+    // only pushes NopCommands under the same condition. So an empty results
+    // array in apply mode means nothing was recorded, NOT that nothing changed.
+    // Reporting "No changes detected" there would be actively misleading.
+    if (!nop) {
+      console.log('\nApplied. safe-settings does not collect a result set when ' +
+        'writing, so what changed is in the [Plugin] log lines above.')
+    } else if (settings && settings.results) {
       const results = settings.results.filter(Boolean)
       if (results.length === 0) {
         console.log('No changes detected.')
