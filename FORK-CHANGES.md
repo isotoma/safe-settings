@@ -121,6 +121,51 @@ upstream as of `0cc709f`, so this must be carried.
 
 ---
 
+## Theme 6 — Fail fast on a broken `LOCAL_CONFIG_PATH`
+
+`full-sync.js` gained `validateLocalConfig()`, called at the top of
+`performFullSync` before `createProbot()`, so a misconfigured run fails before
+it touches the network. It is a no-op when `LOCAL_CONFIG_PATH` is unset, so the
+normal Contents-API path is unaffected.
+
+The motivation is that Theme 1's loaders deliberately swallow `ENOENT` and
+return `[]` / `null` to mimic a 404. That is right for the API path, but for a
+local checkout it converts a wrong path into a silent "No changes detected"
+rather than an error. Two real cases had already been hit:
+
+- **The devcontainer.** `devcontainer.json` mounts only `~/.npmrc`, so the admin
+  checkout is not visible in the container and a host path like
+  `/home/<user>/projects/admin` cannot resolve there. A container run therefore
+  found zero repo configs and reported a false clean.
+- **A comments-only `settings.yml`.** safe-settings depends on js-yaml `^5.2.2`,
+  which throws `expected a document, but the input is empty` where js-yaml 4
+  returned `undefined`. `configManager.loadYaml` only special-cases `ENOENT`, so
+  the `YAMLException` is rethrown, caught by `syncAllSettings`, and reported as
+  an ERROR — aborting before any repo is processed. The `|| {}` in that loader
+  was written for js-yaml 4 behaviour and no longer protects against it.
+
+What it checks, all fatal unless noted:
+
+| Check | On failure |
+|---|---|
+| path exists | error, with a hint about container mounts |
+| path is a directory | error |
+| `<CONFIG_PATH>/settings.yml` exists | error |
+| that file parses | error, with the js-yaml 5 `{}` hint |
+| `<CONFIG_PATH>/repos` exists | error |
+| that directory holds `*.yml` | **warning only**, run continues |
+
+On success it prints one line naming the config root, the repo-config count and
+whether shared settings are present, so a run states what it read.
+
+Verified against fixtures for all six branches plus the unset case. `standard`
+and `eslint` clean on the file; unit tests still 148 passed.
+
+Note this guards the CLI path only. The webhook path in `index.js` would need
+the same call if `LOCAL_CONFIG_PATH` is ever used there.
+
+---
+
 ## Commits dropped as superseded
 
 ### `a572dfb` "Fix for classic branch rules"
