@@ -1727,6 +1727,71 @@ entries:
     expect(same.modifications).toEqual({})
   })
 
+  // Regression: a rule removed from a ruleset that still exists used to be
+  // dropped from the array-level comparison, because processArrays assigned over
+  // deletions[key] after compareDeepIfVisited had populated it. changed() still
+  // saw the deletion and issued the update, so an apply removed the rule while
+  // the dry-run summary reported nothing.
+  it('CompareDeep reports nested deletions inside an element present in both arrays', () => {
+    const target = [
+      {
+        name: 'Copilot review for default branch',
+        target: 'branch',
+        enforcement: 'active',
+        rules: [
+          { type: 'deletion' },
+          { type: 'non_fast_forward' },
+          { type: 'copilot_code_review' }
+        ]
+      }
+    ]
+    const source = [
+      {
+        name: 'Copilot review for default branch',
+        target: 'branch',
+        enforcement: 'active',
+        rules: [
+          { type: 'copilot_code_review' }
+        ]
+      },
+      {
+        name: 'main',
+        target: 'branch',
+        enforcement: 'active',
+        rules: [{ type: 'required_signatures' }]
+      }
+    ]
+
+    const merge = new MergeDeep(log, undefined, [])
+    const result = merge.compareDeep(target, source)
+
+    expect(result.hasChanges).toBe(true)
+    // the new ruleset is an addition
+    expect(result.additions.map(a => a.name)).toEqual(['main'])
+    // and the two rules dropped from the surviving ruleset are reported once each
+    expect(result.deletions).toHaveLength(1)
+    expect(result.deletions[0].name).toEqual('Copilot review for default branch')
+    expect(result.deletions[0].rules).toEqual([
+      { type: 'deletion' },
+      { type: 'non_fast_forward' }
+    ])
+  })
+
+  it('CompareDeep still reports a whole element removed from an array', () => {
+    const target = [
+      { name: 'keep', rules: [{ type: 'x' }] },
+      { name: 'gone', rules: [{ type: 'y' }] }
+    ]
+    const source = [{ name: 'keep', rules: [{ type: 'x' }] }]
+
+    const merge = new MergeDeep(log, undefined, [])
+    const result = merge.compareDeep(target, source)
+
+    expect(result.hasChanges).toBe(true)
+    expect(result.deletions).toHaveLength(1)
+    expect(result.deletions[0].name).toEqual('gone')
+  })
+
   it('CompareDeep branches', () => {
     const target = YAML.load(`
 branches:

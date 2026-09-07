@@ -125,7 +125,7 @@ suite touching these paths died with `this.log.info is not a function`. Fixed by
 adding `info` to the 11 stubs (see "Commits added during the rebase" below).
 The old `branch-from-2.1.19-rc.1` still has this breakage — 19 failures.
 
-## Theme 5 — Two genuine upstream bugs
+## Theme 5 — Three genuine upstream bugs
 
 ### `bypass_pull_request_allowances` — the important one
 
@@ -138,6 +138,46 @@ potentially clobbers the bypass list.
 Upstream does exactly this mapping for `restrictions` a few lines above
 (`.map(team => team.slug || team)`); they simply missed it here. Still unfixed
 upstream as of `0cc709f`, so this must be carried.
+
+### Nested deletions dropped from the diff summary — the quiet one
+
+`lib/mergeDeep.js`, `processArrays()`. When an array element exists in both
+target and source, `compareDeepIfVisited()` recurses into it and collects its own
+nested additions/modifications/deletions. `processArrays()` then did:
+
+```js
+if (combined.length > 0) {
+  deletions[key] = combined.filter(...)
+}
+```
+
+which **assigned over** those nested deletions. `combined` is built from the
+`visited` map, and matched elements are removed from it, so anything
+`compareDeepIfVisited` had collected was discarded. `modifications` survived only
+because it is never reassigned.
+
+The effect is a dry-run that under-reports. `changed()` calls `compareDeep` on a
+single element, sees the deletion and issues the update — but the summary
+NopCommand is built from a whole-array comparison, where the deletion had been
+dropped. So an apply removes a rule the dry-run never mentioned.
+
+Hit in practice: a config that moved `deletion` and `non_fast_forward` out of a
+"Copilot review for default branch" ruleset into a new `main` ruleset. The
+dry-run showed only the `main` addition; the apply would also have stripped two
+rules from the existing ruleset, silently.
+
+Fixed by keeping the nested sub-diffs and appending the whole-element removals.
+The two sets are disjoint — a sub-diff describes an element still present in
+source, a removal is by definition absent from it — so filtering on that both
+preserves the sub-diffs and avoids double-counting the `dels` computed earlier in
+the same function. A naive `concat` duplicates every entry.
+
+Two regression tests added to `test/unit/lib/mergeDeep.test.js`, one for the
+nested case and one asserting whole-element removals still report. The first
+fails on the unfixed code. Suite goes from 148 to 150 passing.
+
+**Worth an upstream PR.** It affects anyone relying on NOP output to review
+changes before applying them, which is the tool's main safety mechanism.
 
 ### Undefined branch name in a log message
 
@@ -259,7 +299,7 @@ The `archive.js` resolution was independently confirmed correct: the real
 
 | | baseline | this branch |
 |---|---|---|
-| Unit tests | 148 passed, 0 failed | 148 passed, 0 failed |
+| Unit tests | 148 passed, 0 failed | 150 passed, 0 failed (2 added) |
 | eslint (whole repo) | 145 problems | 144 |
 | `standard` | 148 lines | 147 |
 | Integration tests | 7 suites / 8 tests failed | 7 suites / 8 tests failed |
@@ -292,6 +332,8 @@ this branch. The single lint improvement is the `archive.js` unused-var fix.
    in `.devcontainer/devcontainer.json` should stay local and not be PR'd
    upstream. Both devcontainer files are tracked in a fork of a public repo.
 
-5. **Two changes are candidate upstream PRs on their own merit:** the
-   `bypass_pull_request_allowances` normalisation and the `params.branch` log
-   fix. Both are genuine upstream bugs affecting all users.
+5. **Three changes are candidate upstream PRs on their own merit:** the
+   `bypass_pull_request_allowances` normalisation, the `params.branch` log fix,
+   and the `processArrays` nested-deletions fix. All are genuine upstream bugs
+   affecting all users; the third undermines the NOP dry-run, which is the
+   tool's main safety mechanism, so it is the one worth raising first.
